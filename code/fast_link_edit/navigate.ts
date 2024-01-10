@@ -1,4 +1,4 @@
-import { EditorPosition, EditorRange, LinkCache, Loc } from 'obsidian';
+import { EditorPosition, EditorRange, LinkCache, Loc, Plugin} from 'obsidian';
 /**
  * The functions here 
  */
@@ -149,13 +149,10 @@ export function getCurrentLinkIndex(
 
 export function goToNextLink(plugin: Plugin, editor: Editor, reverse: boolean = false) {
 	const cursor = editor.getCursor()
-	const currentFile = this.app.workspace.getActiveFile()
-	const fileCache = this.app.metadataCache.getFileCache(currentFile);
-	// console.log(fileCache.links);
+	const currentFile = plugin.app.workspace.getActiveFile()
+	const fileCache = plugin.app.metadataCache.getFileCache(currentFile);
 	let goTo = getNextLinkIndex(cursor, fileCache.links, 'end', reverse);
 	if (goTo == -1){ return; }
 	let pos = locToEditorPosition(fileCache.links[goTo].position['end']);
-	// pos['ch'] -= 2;
-	// console.log(pos);
 	editor.setCursor(pos);
 }

@@ -3,6 +3,7 @@ import { pathAcceptedString, getAllHeadingTitles } from './code/fast_link_edit/h
 import { ObsidianLink } from './code/links';
 import { getNextLinkIndex, locToEditorPosition, getCurrentLinkIndex, goToNextLink} from './code/fast_link_edit/navigate';
 import { TrouverObsSettingTab } from './code/settings';
+import { removeLink } from 'code/fast_link_edit/edit_link';
 import { updateMetaAliases } from "code/fast_link_edit/frontmatter";
 
 //See https://stackoverflow.com/questions/72396827/how-to-include-python-files-in-node-js-build
@@ -50,7 +51,7 @@ export default class TrouverObs extends Plugin {
 			name: "Remove link",
 			hotkeys: [{modifiers: ['Shift', 'Alt'], key: 'r'}],
 			editorCallback: (editor: Editor) =>{
-				this.removeLink(editor);
+				removeLink(this, editor);
 			}
 		});
 		
@@ -142,19 +143,6 @@ export default class TrouverObs extends Plugin {
 
 	async saveSettings() {
 		await this.saveData(this.settings);
-	}
-
-	removeLink(editor: Editor){
-		const cursor = editor.getCursor()
-		const currentFile = this.app.workspace.getActiveFile()
-		const fileCache = this.app.metadataCache.getFileCache(currentFile);
-		let index = getCurrentLinkIndex(cursor, fileCache.links);
-		if (index == -1) { return; }
-		let sp = locToEditorPosition(fileCache.links[index].position.start);
-		let ep = locToEditorPosition(fileCache.links[index].position.end);
-		// console.log(parseLinktext(fileCache.links[index].original))
-		let ol = ObsidianLink.fromText(fileCache.links[index].original);
-		editor.replaceRange(ol.displayText(), sp, ep);
 	}
 
 	/**
