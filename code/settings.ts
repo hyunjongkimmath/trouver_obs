@@ -1,6 +1,10 @@
 import TrouverObs from "main";
 import { App, PluginSettingTab, Setting } from "obsidian";
 
+/**
+ * The settings tab for the plugin.
+ */
+
 
 export class TrouverObsSettingTab extends PluginSettingTab {
     plugin: TrouverObs;

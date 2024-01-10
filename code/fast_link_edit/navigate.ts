@@ -1,4 +1,7 @@
 import { EditorPosition, EditorRange, LinkCache, Loc } from 'obsidian';
+/**
+ * The functions here 
+ */
 
 /**
  * Returns `true` if the specified EditorPosition is within the EdtorRange.
@@ -135,4 +138,24 @@ export function getCurrentLinkIndex(
         return -1;
     }
 
+}
+
+/**
+ * 
+ * @param editor 
+ * @param reverse 
+ * @returns 
+ */
+
+export function goToNextLink(plugin: Plugin, editor: Editor, reverse: boolean = false) {
+	const cursor = editor.getCursor()
+	const currentFile = this.app.workspace.getActiveFile()
+	const fileCache = this.app.metadataCache.getFileCache(currentFile);
+	// console.log(fileCache.links);
+	let goTo = getNextLinkIndex(cursor, fileCache.links, 'end', reverse);
+	if (goTo == -1){ return; }
+	let pos = locToEditorPosition(fileCache.links[goTo].position['end']);
+	// pos['ch'] -= 2;
+	// console.log(pos);
+	editor.setCursor(pos);
 }
