@@ -2,9 +2,10 @@ import { Editor, MarkdownView, Notice, Plugin } from "obsidian";
 import { removeLink } from "./fast_link_edit/edit_link";
 import { updateMetaAliases } from "./fast_link_edit/frontmatter";
 import { getAllHeadingTitles, pathAcceptedString } from "./fast_link_edit/helper";
-import { goToNextLink } from "./fast_link_edit/navigate";
+import { goToNextLink, getCurrentLinkIndex } from "./fast_link_edit/navigate";
 import { toggleMetaTag } from "./fast_toggle_tags/meta";
 import { createNotationNote } from "./notation";
+import { ObsidianLink } from "./links";
 
 // TODO: document the functions here
 
@@ -16,6 +17,7 @@ import { createNotationNote } from "./notation";
 export async function addCommands(plugin: Plugin) {
     await addFastLinkEditCommands(plugin);
     await addFastToggleTagsCommands(plugin);
+    await addIndexViewCommands(plugin);
 }
 
 export async function addFastLinkEditCommands(plugin: Plugin) {
@@ -46,6 +48,7 @@ export async function addFastLinkEditCommands(plugin: Plugin) {
         }
     });
     
+    // TODO: factor out main code from below
     plugin.addCommand({
         id: 'make-notation-note',
         name: 'Make notation note',
@@ -63,6 +66,7 @@ export async function addFastLinkEditCommands(plugin: Plugin) {
             return false;
         }
     });
+    // TODO: factor out main code from below
     plugin.addCommand({
         id: 'copy-file-name-of-current-pane',
         name: 'Copy file name of current pane',
@@ -80,6 +84,7 @@ export async function addFastLinkEditCommands(plugin: Plugin) {
         }
     });
 
+    // TODO: factor out main code from below
     plugin.addCommand({
         id: 'make-alias-from-headers',
         name: "Make alias from headers",
@@ -87,9 +92,6 @@ export async function addFastLinkEditCommands(plugin: Plugin) {
         editorCallback: (editor: Editor) =>{
             const file = plugin.app.workspace.getActiveFile();
             const fileCache = plugin.app.metadataCache.getFileCache(file);
-            // console.log(fileCache);
-            // editor.getCursor();
-            // fileCache.headings
             let headings = getAllHeadingTitles(fileCache, true);
             headings = headings.map( (heading) => heading);
             headings = headings.filter(function(heading) { 
@@ -167,4 +169,77 @@ export async function addFastToggleTagsCommands(plugin: Plugin) {
             }
         })    
     }
+}
+
+// TODO: factor out the main code in the below
+
+export async function addIndexViewCommands(plugin: Plugin) {
+    plugin.addCommand({
+        id: 'open-pane-to-navigate-links-in-current-view',
+        name: 'Open pane to navigate links in current view',
+        hotkeys: [{modifiers: ['Shift', 'Alt'], key: 'Enter'}],
+        editorCallback: async (editor: Editor) => {
+            console.log('hello')
+            const currentFile = plugin.app.workspace.getActiveFile();
+            const fileCache = plugin.app.metadataCache.getFileCache(currentFile);
+            const index = getCurrentLinkIndex(editor.getCursor() , fileCache.links);
+            const file_name = ObsidianLink.fromText(fileCache.links[index].original).file_name;
+            //const file_name = plugin.app.metadataCache.getFirstLinkpathDest(fileCache.links[index].original, '')
+            const file = plugin.app.metadataCache.getFirstLinkpathDest(file_name, '');
+            await plugin.app.workspace.openLinkText('', file.path, true);
+            const leaf = plugin.app.workspace.getLeaf(false);
+            leaf.navigateLinkIndex = index;
+            leaf.navigateLinks = fileCache.links;
+            new Notice('New link-navigation pane opened');
+        }
+    });
+
+    plugin.addCommand({
+        id: 'navigate-pane-to-next-link',
+        name: 'Navigate pane to next link',
+        hotkeys: [{modifiers: ['Shift', 'Alt'], key: 'j'}],
+        checkCallback: (checking: boolean) => {
+            const leaf = plugin.app.workspace.getLeaf(false);
+            if (leaf.hasOwnProperty('navigateLinkIndex')) {
+                if (!checking) {
+                    if (leaf.navigateLinkIndex < leaf.navigateLinks.length - 1) {
+                        leaf.navigateLinkIndex = leaf.navigateLinkIndex + 1;
+                        const file_name = ObsidianLink.fromText(leaf.navigateLinks[leaf.navigateLinkIndex].original).file_name;
+                        const file = plugin.app.metadataCache.getFirstLinkpathDest(file_name, '');
+                        if (file) { // if the link points to an existing file
+                            plugin.app.workspace.openLinkText('', file.path, false);
+                        } else {
+                            new Notice(`${file_name} does not exist.`)
+                        }
+                    }
+                }
+                return true;
+            }
+            return false;
+        }
+    });
+    plugin.addCommand({
+        id: 'navigate-pane-to-previous-link',
+        name: 'Navigate pane to previous link',
+        hotkeys: [{modifiers: ['Shift', 'Alt'], key: 'k'}],
+        checkCallback: (checking: boolean) => {
+            const leaf = plugin.app.workspace.getLeaf(false);
+            if (leaf.hasOwnProperty('navigateLinkIndex')) {
+                if (!checking) {
+                    if (leaf.navigateLinkIndex > 0) {
+                        leaf.navigateLinkIndex = leaf.navigateLinkIndex - 1;
+                        const file_name = ObsidianLink.fromText(leaf.navigateLinks[leaf.navigateLinkIndex].original).file_name;
+                        const file = plugin.app.metadataCache.getFirstLinkpathDest(file_name, '');
+                        if (file) { // if the link points to an existing file
+                            plugin.app.workspace.openLinkText('', file.path, false);
+                        } else {
+                            new Notice(`${file_name} does not exist.`)
+                        }
+                    }
+                }
+                return true;
+            }
+            return false;
+        }
+    });
 }
