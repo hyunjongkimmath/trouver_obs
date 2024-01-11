@@ -8,6 +8,8 @@ import { updateMetaAliases } from "code/fast_link_edit/frontmatter";
 import { createNotationNote } from 'code/notation';
 import { addCommands } from 'code/add_commands';
 
+const yaml = require('js-yaml');
+
 //See https://stackoverflow.com/questions/72396827/how-to-include-python-files-in-node-js-build
 //to copy python files
 

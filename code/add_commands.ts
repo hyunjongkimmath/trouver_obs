@@ -1,10 +1,12 @@
 import { Editor, MarkdownView, Notice, Plugin } from "obsidian";
-import { goToNextLink } from "./fast_link_edit/navigate";
 import { removeLink } from "./fast_link_edit/edit_link";
-import { createNotationNote } from "./notation";
-import { getAllHeadingTitles } from "./fast_link_edit/helper";
 import { updateMetaAliases } from "./fast_link_edit/frontmatter";
-import { pathAcceptedString } from "./fast_link_edit/helper";
+import { getAllHeadingTitles, pathAcceptedString } from "./fast_link_edit/helper";
+import { goToNextLink } from "./fast_link_edit/navigate";
+import { toggleMetaTag } from "./fast_toggle_tags/meta";
+import { createNotationNote } from "./notation";
+
+// TODO: document the functions here
 
 /**
  * 
@@ -12,7 +14,11 @@ import { pathAcceptedString } from "./fast_link_edit/helper";
  * @returns {void}
  */
 export async function addCommands(plugin: Plugin) {
+    await addFastLinkEditCommands(plugin);
+    await addFastToggleTagsCommands(plugin);
+}
 
+export async function addFastLinkEditCommands(plugin: Plugin) {
     plugin.addCommand({
         id: 'go-to-next-link',
         name: 'Go to next link',
@@ -114,5 +120,51 @@ export async function addCommands(plugin: Plugin) {
             // TODO
         }
     });
+}
 
+
+export async function addFastToggleTagsCommands(plugin: Plugin) {
+    const tags = ['_meta/definition', '_meta/notation', '_meta/concept', '_meta/proof',
+                    '_meta/narrative', '_meta/exercise', '_meta/remark', '_meta/example',
+                    '_meta/context'];
+    const TODOTags = ['_meta/TODO/delete', '_meta/TODO/split', '_meta/TODO/merge',
+                        '_meta/TODO/change_title'];
+
+    for (let i = 0; i < tags.length; i++) {
+        let tag = tags[i];
+        plugin.addCommand({
+            id: `toggle-${tag}-tag`,
+            name: `Toggle ${tag} tag`,
+            hotkeys: [{modifiers: ['Shift', 'Alt'], key: `${i+1}`}],
+            checkCallback: (checking: boolean) => {
+                const currentFile = plugin.app.workspace.getActiveFile();
+                if (currentFile) {
+                    if (!checking) {
+                        toggleMetaTag(plugin.app, tag);
+                    }
+                    return true;
+                }
+                return false;
+            }
+        });
+    }
+
+    for (let i = 0; i < TODOTags.length; i++) {
+        let tag = TODOTags[i];
+        plugin.addCommand({
+            id: `toggle-${tag}-tag`,
+            name: `Toggle ${tag} tag`,
+            hotkeys: [{modifiers: ['Mod', 'Shift', 'Alt'], key: `${i+1}`}],
+            checkCallback: (checking: boolean) => {
+                const currentFile = plugin.app.workspace.getActiveFile();
+                if (currentFile){
+                    if (!checking) {
+                        toggleMetaTag(plugin.app, tag);
+                    }
+                    return true;
+                }
+                return false;
+            }
+        })    
+    }
 }
