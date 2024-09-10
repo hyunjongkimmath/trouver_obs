@@ -1,11 +1,5 @@
-import { App, Editor, EditorPosition, KeymapEventHandler, KeymapEventListener, MarkdownView, Modal, Notice, parseLinktext, Plugin, PluginSettingTab, Scope, Setting, stringifyYaml, TFile } from 'obsidian';
-import { pathAcceptedString, getAllHeadingTitles } from './code/fast_link_edit/helper';
-import { ObsidianLink } from './code/links';
-import { getNextLinkIndex, locToEditorPosition, getCurrentLinkIndex, goToNextLink} from './code/fast_link_edit/navigate';
+import { Plugin } from 'obsidian';
 import { TrouverObsSettingTab } from './code/settings';
-import { removeLink } from 'code/fast_link_edit/edit_link';
-import { updateMetaAliases } from "code/fast_link_edit/frontmatter";
-import { createNotationNote } from 'code/notation';
 import { addCommands } from 'code/add_commands';
 
 const yaml = require('js-yaml');

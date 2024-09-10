@@ -1,6 +1,7 @@
 import { Editor, Plugin } from 'obsidian';
 import { ObsidianLink } from 'code/links';
-import { locToEditorPosition, getCurrentLinkIndex} from './navigate';
+import { getCurrentLinkIndex} from './navigate';
+import { locToEditorPosition } from 'code/editor/helper';
 
 /**
  * Remove the link at the current cursor location in `editor`,

@@ -1,11 +1,14 @@
-import { Editor, MarkdownView, Notice, Plugin } from "obsidian";
+import { Editor, MarkdownView, Notice, Plugin, htmlToMarkdown, TFile} from "obsidian";
 import { removeLink } from "./fast_link_edit/edit_link";
-import { updateMetaAliases } from "./fast_link_edit/frontmatter";
+import { updateMetaAliases, updateMetaAliasesFromHeadingsAndHTMLTags } from "./meta/frontmatter";
 import { getAllHeadingTitles, pathAcceptedString } from "./fast_link_edit/helper";
 import { goToNextLink, getCurrentLinkIndex } from "./fast_link_edit/navigate";
 import { toggleMetaTag } from "./fast_toggle_tags/meta";
 import { createNotationNote } from "./notation";
 import { ObsidianLink } from "./links";
+import { ManageLinksModal } from "./manage_links/ManageLinksModal";
+import { addHTMLCommands } from "./html/html";
+import { sanitizeFilename } from "./files";
 
 // TODO: document the functions here
 
@@ -18,6 +21,9 @@ export async function addCommands(plugin: Plugin) {
     await addFastLinkEditCommands(plugin);
     await addFastToggleTagsCommands(plugin);
     await addIndexViewCommands(plugin);
+    await addManageLinksCommands(plugin);
+    await addHTMLCommands(plugin);
+    await addRenameFileToSelectionCommand(plugin);
 }
 
 export async function addFastLinkEditCommands(plugin: Plugin) {
@@ -90,17 +96,8 @@ export async function addFastLinkEditCommands(plugin: Plugin) {
         name: "Make alias from headers",
         hotkeys: [{modifiers: ['Shift', 'Mod'], key: 'a'}],
         editorCallback: (editor: Editor) =>{
-            const file = plugin.app.workspace.getActiveFile();
-            const fileCache = plugin.app.metadataCache.getFileCache(file);
-            let headings = getAllHeadingTitles(fileCache, true);
-            headings = headings.map( (heading) => heading);
-            headings = headings.filter(function(heading) { 
-                return !( ['Topic', 'See Also', 'Meta', 'References', 'Citations and Footnotes', 'Code'].includes(heading) )});
-            let aliases = headings.map( (heading) => `${plugin.settings.referenceName}_${pathAcceptedString(heading)}`);
-            aliases = aliases.filter(function(alias) {  // Filter out aliases if they are already in frontmatter.
-                return !( fileCache.frontmatter.aliases.includes(alias)) });
-            let all_aliases = fileCache.frontmatter.aliases.concat(aliases);
-            updateMetaAliases(plugin.app, all_aliases);
+            updateMetaAliasesFromHeadingsAndHTMLTags(plugin, editor);
+            // console.log(htmlToMarkdown("<div>hi</div>"))
         }
     });
 
@@ -126,18 +123,21 @@ export async function addFastLinkEditCommands(plugin: Plugin) {
 
 
 export async function addFastToggleTagsCommands(plugin: Plugin) {
+
     const tags = ['_meta/definition', '_meta/notation', '_meta/concept', '_meta/proof',
                     '_meta/narrative', '_meta/exercise', '_meta/remark', '_meta/example',
-                    '_meta/context'];
+                    '_meta/context', 'def_and_notat_identified', 'def_and_notat_names_added', 'notation_summary', '_meta/notation_note_named'];
+    const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '+', ']']
     const TODOTags = ['_meta/TODO/delete', '_meta/TODO/split', '_meta/TODO/merge',
-                        '_meta/TODO/change_title'];
+                        '_meta/TODO/change_title', ];
 
     for (let i = 0; i < tags.length; i++) {
         let tag = tags[i];
+        let key = keys[i];
         plugin.addCommand({
             id: `toggle-${tag}-tag`,
             name: `Toggle ${tag} tag`,
-            hotkeys: [{modifiers: ['Shift', 'Alt'], key: `${i+1}`}],
+            hotkeys: [{modifiers: ['Shift', 'Alt'], key: key}],
             checkCallback: (checking: boolean) => {
                 const currentFile = plugin.app.workspace.getActiveFile();
                 if (currentFile) {
@@ -169,6 +169,7 @@ export async function addFastToggleTagsCommands(plugin: Plugin) {
             }
         })    
     }
+
 }
 
 // TODO: factor out the main code in the below
@@ -179,10 +180,11 @@ export async function addIndexViewCommands(plugin: Plugin) {
         name: 'Open pane to navigate links in current view',
         hotkeys: [{modifiers: ['Shift', 'Alt'], key: 'Enter'}],
         editorCallback: async (editor: Editor) => {
-            console.log('hello')
+            // console.log('hello')
             const currentFile = plugin.app.workspace.getActiveFile();
             const fileCache = plugin.app.metadataCache.getFileCache(currentFile);
             const index = getCurrentLinkIndex(editor.getCursor() , fileCache.links);
+            // console.log(index)
             const file_name = ObsidianLink.fromText(fileCache.links[index].original).file_name;
             //const file_name = plugin.app.metadataCache.getFirstLinkpathDest(fileCache.links[index].original, '')
             const file = plugin.app.metadataCache.getFirstLinkpathDest(file_name, '');
@@ -243,3 +245,86 @@ export async function addIndexViewCommands(plugin: Plugin) {
         }
     });
 }
+
+export async function addManageLinksCommands(plugin: Plugin) {
+    plugin.addCommand({
+        id: 'manage-file-backlinks',
+        name: 'Manage file backlinks',
+        checkCallback: (checking: boolean) => {
+            const file = plugin.app.workspace.getActiveFile();
+            if (file) {
+                if (!checking) {
+                    new ManageLinksModal(plugin.app).open();
+                }
+                return true;
+            }
+            return false;
+        }
+    })
+}
+
+export async function addRenameFileToSelectionCommand(plugin: Plugin) {
+    plugin.addCommand({
+      id: 'rename-and-delete',
+      name: 'Rename note to selection and delete line',
+      hotkeys: [{modifiers: ["Shift", "Alt"], key: 'e'}],
+      editorCallback: async (editor: Editor, view: MarkdownView) => {
+        const selection = editor.getSelection().trim();
+        if (!selection) {
+          // No text selected or only whitespace
+          return;
+        }
+
+        const file = view.file;
+        if (!file) {
+          // No file open
+          return;
+        }
+
+        // Get the current line number
+        const cursor = editor.getCursor();
+        const lineNumber = cursor.line;
+
+        try {
+          // Sanitize the filename
+          const sanitizedName = sanitizeFilename(selection);
+          if (!sanitizedName) {
+            // Invalid filename after sanitization
+            new Notice("Invalid filename. Please select a valid name.");
+            return;
+          }
+
+          // Check if file.parent exists
+          if (!file.parent) {
+            new Notice("Cannot rename file: Unable to determine parent folder.");
+            return;
+          }
+
+          // Check if a file with the new name already exists
+          const newPath = `${file.parent.path}/${sanitizedName}.md`;
+          const existingFile = this.app.vault.getAbstractFileByPath(newPath);
+          if (existingFile instanceof TFile) {
+            new Notice("A file with this name already exists.");
+            return;
+          }
+
+          // Rename the file
+          await this.app.fileManager.renameFile(file, newPath);
+
+          // Delete the line containing the selection
+          editor.replaceRange('', 
+            { line: lineNumber, ch: 0 }, 
+            { line: lineNumber + 1, ch: 0 }
+          );
+
+          // Save the file after deletion
+          await this.app.vault.modify(file, editor.getValue());
+
+          new Notice(`File renamed to "${sanitizedName}.md" and line deleted.`);
+        } catch (error) {
+          console.error('Error renaming file or deleting line:', error);
+          new Notice("An error occurred while renaming the file or deleting the line.");
+        }
+      }
+    });
+  }
