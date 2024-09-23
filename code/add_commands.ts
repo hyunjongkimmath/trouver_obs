@@ -9,6 +9,9 @@ import { ObsidianLink } from "./links";
 import { ManageLinksModal } from "./manage_links/ManageLinksModal";
 import { addHTMLCommands } from "./html/html";
 import { sanitizeFilename } from "./files";
+import { navigateToIndex } from "./navigate_index/navigate_index";
+import * as path from 'path';
+import * as fs from 'fs';
 
 // TODO: document the functions here
 
@@ -24,6 +27,8 @@ export async function addCommands(plugin: Plugin) {
     await addManageLinksCommands(plugin);
     await addHTMLCommands(plugin);
     await addRenameFileToSelectionCommand(plugin);
+    await addNavigateToIndexCommand(plugin);
+    // await addOpenParentVaultCommand(plugin);
 }
 
 export async function addFastLinkEditCommands(plugin: Plugin) {
@@ -287,7 +292,7 @@ export async function addRenameFileToSelectionCommand(plugin: Plugin) {
 
         try {
           // Sanitize the filename
-          const sanitizedName = sanitizeFilename(selection);
+          const sanitizedName = sanitizeFilename(selection, false);
           if (!sanitizedName) {
             // Invalid filename after sanitization
             new Notice("Invalid filename. Please select a valid name.");
@@ -328,3 +333,62 @@ export async function addRenameFileToSelectionCommand(plugin: Plugin) {
       }
     });
   }
+
+export async function addNavigateToIndexCommand(plugin: Plugin) {
+    plugin.addCommand({
+      id: 'navigate-to-index',
+      name: 'Navigate to Index',
+      callback: () => navigateToIndex(this)
+    });
+}
+
+
+
+// export function addOpenParentVaultCommand(plugin: Plugin) {
+//   plugin.addCommand({
+//     id: 'open-parent-vault',
+//     name: 'Open Parent Vault',
+//     callback: async () => {
+//       const currentFile = plugin.app.workspace.getActiveFile();
+//       if (!currentFile) {
+//         new Notice('No active file');
+//         return;
+//       }
+
+//       const vaultPath = findParentVaultPath(currentFile.path);
+//       if (!vaultPath) {
+//         new Notice('No parent vault found');
+//         return;
+//       }
+
+//       if (vaultPath === plugin.app.vault.adapter.basePath) {
+//         new Notice('Already in the current vault');
+//         return;
+//       }
+
+//       try {
+//         await plugin.app.vault.adapter.exists(vaultPath);
+//         await plugin.app.openVault(vaultPath);
+//         new Notice(`Opened vault at ${vaultPath}`);
+//       } catch (error) {
+//         console.error('Error opening vault:', error);
+//         new Notice('Failed to open vault');
+//       }
+//     }
+//   });
+// }
+
+// function findParentVaultPath(filePath: string): string | null {
+//   let currentDir = path.dirname(filePath);
+  
+//   while (currentDir !== path.parse(currentDir).root) {
+//     const obsidianPath = path.join(currentDir, '.obsidian');
+//     if (fs.existsSync(obsidianPath)) {
+//       return currentDir;
+//     }
+//     currentDir = path.dirname(currentDir);
+//   }
+  
+//   return null;
+// }
+
