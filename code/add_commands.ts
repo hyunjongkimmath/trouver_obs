@@ -12,6 +12,7 @@ import { sanitizeFilename } from "./files";
 import { navigateToIndex } from "./navigate_index/navigate_index";
 import * as path from 'path';
 import * as fs from 'fs';
+import { createFootnote } from "./footnotes";
 
 // TODO: document the functions here
 
@@ -29,6 +30,7 @@ export async function addCommands(plugin: Plugin) {
     await addRenameFileToSelectionCommand(plugin);
     await addNavigateToIndexCommand(plugin);
     // await addOpenParentVaultCommand(plugin);
+    await addCreateFootnoteCommand(plugin);
 }
 
 export async function addFastLinkEditCommands(plugin: Plugin) {
@@ -116,14 +118,14 @@ export async function addFastLinkEditCommands(plugin: Plugin) {
         }
     })
 
-    plugin.addCommand({
-        id: 'add-footnote',
-        name: 'Add footnote',
-        hotkeys: [{modifiers: ['Shift', 'Alt'], key: 't'}],
-        editorCallback: (editor: Editor) => {
-            // TODO
-        }
-    });
+    // plugin.addCommand({
+    //     id: 'add-footnote',
+    //     name: 'Add footnote',
+    //     hotkeys: [{modifiers: ['Shift', 'Alt'], key: 't'}],
+    //     editorCallback: (editor: Editor) => {
+    //         // TODO
+    //     }
+    // });
 }
 
 
@@ -392,3 +394,13 @@ export async function addNavigateToIndexCommand(plugin: Plugin) {
 //   return null;
 // }
 
+
+export async function addCreateFootnoteCommand(plugin: Plugin) {
+    plugin.addCommand({
+        id: 'create-footnote',
+        name: 'Create Footnote',
+        hotkeys: [{modifiers: ['Shift', 'Alt'], key: 't'}],
+        editorCallback: (editor: Editor) => createFootnote(editor)
+    });
+
+}
