@@ -31,5 +31,19 @@ export class TrouverObsSettingTab extends PluginSettingTab {
                         await this.plugin.saveSettings();
                     })
                 );
+
+
+        // New setting for venvPath
+        new Setting(containerEl)
+            .setName('Python venv path')
+            .setDesc('Path to your Python virtual environment with an installation of `trouver`.')
+            .addText(text => text
+                .setPlaceholder('/path/to/your/venv')
+                .setValue(this.plugin.settings.venvPath)
+                .onChange(async (value) => {
+                    this.plugin.settings.venvPath = value;
+                    await this.plugin.saveSettings();
+                }));
+
     }
 }

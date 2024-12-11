@@ -9,10 +9,12 @@ const yaml = require('js-yaml');
 
 interface TrouverObsSetting {
 	referenceName: string;
+	venvPath: string;
 }
 
 const DEFAULT_SETTINGS: Partial<TrouverObsSetting> = {
 	referenceName: '',
+	venvPath: String.raw`C:\Users\hyunj\Documents\Development\Python\trouver_py310_venv`,
 };
 
 /**

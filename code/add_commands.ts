@@ -13,6 +13,9 @@ import { navigateToIndex } from "./navigate_index/navigate_index";
 import * as path from 'path';
 import * as fs from 'fs';
 import { createFootnote } from "./footnotes";
+import { createNotationNotes, nameDefsAndNotats } from "./run_python_script";
+import { getReferenceName } from "./references";
+import TrouverObs from "main";
 
 // TODO: document the functions here
 
@@ -29,11 +32,12 @@ export async function addCommands(plugin: Plugin) {
     await addHTMLCommands(plugin);
     await addRenameFileToSelectionCommand(plugin);
     await addNavigateToIndexCommand(plugin);
-    // await addOpenParentVaultCommand(plugin);
+    await addOpenParentVaultCommand(plugin);
     await addCreateFootnoteCommand(plugin);
+    await addPythonCommands(plugin);
 }
 
-export async function addFastLinkEditCommands(plugin: Plugin) {
+export async function addFastLinkEditCommands(plugin: TrouverObs) {
     plugin.addCommand({
         id: 'go-to-next-link',
         name: 'Go to next link',
@@ -72,7 +76,8 @@ export async function addFastLinkEditCommands(plugin: Plugin) {
                 if (!checking) {
                     const selection = view.editor.getSelection();
                     const currentFile = plugin.app.workspace.getActiveFile();
-                    createNotationNote(plugin, plugin.settings.referenceName, selection, currentFile);
+                    const referenceName = getReferenceName(plugin);
+                    createNotationNote(plugin, referenceName, selection, currentFile);
                 }
                 return true;
             }
@@ -112,9 +117,10 @@ export async function addFastLinkEditCommands(plugin: Plugin) {
         id: 'copy-reference-name-to-clipboard',
         name: 'Copy reference name to clipboard',
         hotkeys: [{modifiers: ['Alt', 'Shift'], key: 'c'}],
-        callback: () => {
-            navigator.clipboard.writeText(`${plugin.settings.referenceName}_`);
-            new Notice(`Copied '${plugin.settings.referenceName}_' to clipboard.`);
+        callback: async () => {
+            const referenceName = await getReferenceName(plugin);
+            await navigator.clipboard.writeText(`${referenceName}_`);
+            new Notice(`Copied '${referenceName}_' to clipboard.`);
         }
     })
 
@@ -346,53 +352,76 @@ export async function addNavigateToIndexCommand(plugin: Plugin) {
 
 
 
-// export function addOpenParentVaultCommand(plugin: Plugin) {
-//   plugin.addCommand({
-//     id: 'open-parent-vault',
-//     name: 'Open Parent Vault',
-//     callback: async () => {
-//       const currentFile = plugin.app.workspace.getActiveFile();
-//       if (!currentFile) {
-//         new Notice('No active file');
-//         return;
-//       }
+export function addOpenParentVaultCommand(plugin: Plugin) {
+  plugin.addCommand({
+    id: 'open-parent-vault',
+    name: 'Open Parent Vault',
+    callback: async () => {
+      const currentFile = plugin.app.workspace.getActiveFile();
+      if (!currentFile) {
+        new Notice('No active file');
+        return;
+      }
 
-//       const vaultPath = findParentVaultPath(currentFile.path);
-//       if (!vaultPath) {
-//         new Notice('No parent vault found');
-//         return;
-//       }
+      const openedVaultPath = plugin.app.vault.adapter.getBasePath();
+      const vaultPath = findParentVaultPath(currentFile.path, openedVaultPath);
+    //   const vaultPath = 'hi'
+      if (!vaultPath) {
+        new Notice('No parent vault found');
+        return;
+      }
 
-//       if (vaultPath === plugin.app.vault.adapter.basePath) {
-//         new Notice('Already in the current vault');
-//         return;
-//       }
+      if (vaultPath === plugin.app.vault.adapter.basePath) {
+        new Notice('Already in the current vault');
+        return;
+      }
 
-//       try {
-//         await plugin.app.vault.adapter.exists(vaultPath);
-//         await plugin.app.openVault(vaultPath);
-//         new Notice(`Opened vault at ${vaultPath}`);
-//       } catch (error) {
-//         console.error('Error opening vault:', error);
-//         new Notice('Failed to open vault');
-//       }
-//     }
-//   });
-// }
+      try {
+        console.log('hi');
+        console.log(vaultPath);
+        // await plugin.app.vault.adapter.exists(vaultPath);
+        // await plugin.app.openVault(vaultPath);
+        await openVault(vaultPath);
+        console.log('hi again')
+        new Notice(`Opened vault at ${vaultPath}`);
+      } catch (error) {
+        console.error('Error opening vault:', error);
+        new Notice('Failed to open vault');
+      }
+    }
+  });
+}
 
-// function findParentVaultPath(filePath: string): string | null {
-//   let currentDir = path.dirname(filePath);
+async function openVault(vaultPath: string) {
+    const { shell } = require('electron');
+    // const encodedPath = encodeURIComponent(vaultPath);
+    console.log('path');
+    console.log(vaultPath);
+    const vaultname = path.basename(vaultPath);
+    // const obsidianUrl = `obsidian://open?vault=${encodedPath}`;
+    const obsidianUrl = `obsidian://vault/${vaultname}`;
+    console.log(obsidianUrl);
+    // obsidian://open?vault=Playground&file=7_projective_representations%2Ffarkas_kopeliovich_kra_umc_17_1
+    shell.openExternal(obsidianUrl);
+  }
+
+function findParentVaultPath(
+    filePath: string,
+    openedVaultPath: string,
+    ): string | null {
+  let currentDir = path.dirname(filePath);
+  while (currentDir !== '.') {
+    console.log(currentDir);
+    const obsidianPath = path.join(currentDir, '.obsidian');
+    const absolutePath = path.resolve(openedVaultPath, obsidianPath);
+    if (fs.existsSync(absolutePath)) {
+      return currentDir;
+    }
+    currentDir = path.dirname(currentDir);
+  }
   
-//   while (currentDir !== path.parse(currentDir).root) {
-//     const obsidianPath = path.join(currentDir, '.obsidian');
-//     if (fs.existsSync(obsidianPath)) {
-//       return currentDir;
-//     }
-//     currentDir = path.dirname(currentDir);
-//   }
-  
-//   return null;
-// }
+  return null;
+}
 
 
 export async function addCreateFootnoteCommand(plugin: Plugin) {
@@ -403,4 +432,44 @@ export async function addCreateFootnoteCommand(plugin: Plugin) {
         editorCallback: (editor: Editor) => createFootnote(editor)
     });
 
+}
+
+export async function addPythonCommands(plugin: TrouverObs) {
+    plugin.addCommand({
+        id: 'create-notation-notes',
+        name: 'Create notation notes (no deletions, auto summary, and auto name generation)',
+        // hotkeys: [{modifiers: ['Shift', 'Alt'], key: 't'}],
+        editorCallback: async (editor: Editor) => {
+            try {
+                new Notice(`Creating, summarizing, and naming notation notes`);
+                const activeFile = plugin.app.workspace.getActiveFile();
+                const fileName = activeFile.name;
+                // Ensure createNotationNotes returns a promise that resolves when all operations are complete
+                await createNotationNotes(plugin);
+                new Notice(`Notation notes created, summarized, and named for ${fileName}.`);
+            } catch (error) {
+                console.error('Error in create-notation-notes command:', error);
+                new Notice('An error occurred while creating notation notes');
+            }
+        }
+    })
+
+    plugin.addCommand({
+        id: 'name-defs-and-notats',
+        name: 'Name definitions and notations in HTML tags',
+        // hotkeys: [{modifiers: ['Shift', 'Alt'], key: 't'}],
+        editorCallback: async (editor: Editor) => {
+            try {
+                new Notice(`Naming definitions and notations in HTML tags`);
+                const activeFile = plugin.app.workspace.getActiveFile();
+                const fileName = activeFile.name;
+                // Ensure createNotationNotes returns a promise that resolves when all operations are complete
+                await nameDefsAndNotats(plugin);
+                new Notice(`Definitions and notations named in ${fileName}.`);
+            } catch (error) {
+                console.error('Error in create-notation-notes command:', error);
+                new Notice('An error occurred while creating notation notes');
+            }
+        }
+    })
 }

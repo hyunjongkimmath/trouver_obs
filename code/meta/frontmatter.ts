@@ -2,6 +2,7 @@ import { App, CachedMetadata, Editor, Plugin, TFile, Vault } from "obsidian";
 import { getAllHeadingTitles } from "code/fast_link_edit/helper";
 import { pathAcceptedString } from "code/fast_link_edit/helper";
 import { getAllDefinitions } from "code/definition_and_notation/helper";
+import { getReferenceName } from "code/references";
 
 /**
  * See fast-toggle-tags main.ts
@@ -82,7 +83,8 @@ export async function updateMetaAliasesFromHeadingsAndHTMLTags(
     const definitions = await getAllDefinitions(plugin.app.vault, file);
     const toBeAliases = [...headings, ...definitions];
 
-    let aliases = toBeAliases.map( (alias) => `${plugin.settings.referenceName}_${pathAcceptedString(alias)}`)
+    const referenceName = await getReferenceName(plugin)
+    let aliases = await toBeAliases.map( (alias) => `${referenceName}_${pathAcceptedString(alias)}`)
     aliases = aliases.filter(function(alias) {  // Filter out aliases if they are already in frontmatter.
         return !( fileCache.frontmatter.aliases.includes(alias)) });
     var _ = require('lodash');
