@@ -13,7 +13,7 @@ import { navigateToIndex } from "./navigate_index/navigate_index";
 import * as path from 'path';
 import * as fs from 'fs';
 import { createFootnote } from "./footnotes";
-import { createNotationNotes, nameDefsAndNotats } from "./run_python_script";
+import { createNotationNotes, linkNotats, nameDefsAndNotats } from "./run_python_script";
 import { getReferenceName } from "./references";
 import TrouverObs from "main";
 
@@ -469,6 +469,26 @@ export async function addPythonCommands(plugin: TrouverObs) {
             } catch (error) {
                 console.error('Error in create-notation-notes command:', error);
                 new Notice('An error occurred while creating notation notes');
+            }
+        }
+    })
+
+
+    plugin.addCommand({
+        id: 'notation-note-linking',
+        name: 'Link notation notes to current notation note',
+        // hotkeys: [{modifiers: ['Shift', 'Alt'], key: 't'}],
+        editorCallback: async (editor: Editor) => {
+            try {
+                new Notice(`Linking notation notes`);
+                const activeFile = plugin.app.workspace.getActiveFile();
+                const fileName = activeFile.name;
+                // Ensure createNotationNotes returns a promise that resolves when all operations are complete
+                await linkNotats(plugin);
+                new Notice(`Notation notes linked in ${fileName}.`);
+            } catch (error) {
+                console.error('Error in notation-note-linking command:', error);
+                new Notice('An error occurred while linking notation notes');
             }
         }
     })

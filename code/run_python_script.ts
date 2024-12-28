@@ -107,3 +107,24 @@ export async function nameDefsAndNotats(
     // passToScript(plugin, 'create_notation_notes.py', [vaultPath, filePath, referenceName])
 
 }
+
+export async function linkNotats(
+    plugin: TrouverObs,
+){
+    // console.log('hi')
+    const adapter = plugin.app.vault.adapter;
+    const vaultPath = adapter.getBasePath(); // Get the root directory of the vault
+    const activeFile = plugin.app.workspace.getActiveFile();
+    const filePath = activeFile.path;
+    const referenceName =  await getReferenceName(plugin)
+
+    try {
+        // Await the passToScript function
+        await passToScript(plugin, 'link_notations.py', [vaultPath, filePath, referenceName]);
+    } catch (error) {
+        console.error('Error in createNotationNotes:', error);
+        throw error; // Re-throw the error to be caught by the calling function
+    }
+    // passToScript(plugin, 'create_notation_notes.py', [vaultPath, filePath, referenceName])
+
+}
