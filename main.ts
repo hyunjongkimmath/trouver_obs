@@ -14,7 +14,7 @@ interface TrouverObsSetting {
 
 const DEFAULT_SETTINGS: Partial<TrouverObsSetting> = {
 	referenceName: '',
-	venvPath: String.raw`C:\Users\hyunj\Documents\Development\Python\trouver_py310_venv`,
+	venvPath: String.raw`C:\Users\hyunj\Documents\Development\Python\trouver_py312_venv`,
 };
 
 /**

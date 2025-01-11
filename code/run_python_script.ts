@@ -44,6 +44,7 @@ export async function passToScript(
   try {
     const scriptPath = pathToScript(plugin, scriptName);
     const result = await runPythonScript(plugin, scriptPath, args);
+    console.log('Logging from Python script:');
     console.log(result);
   } catch (error) {
     console.error('Error running Python script:', error);

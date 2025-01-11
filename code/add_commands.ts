@@ -2,7 +2,7 @@ import { Editor, MarkdownView, Notice, Plugin, htmlToMarkdown, TFile} from "obsi
 import { removeLink } from "./fast_link_edit/edit_link";
 import { updateMetaAliases, updateMetaAliasesFromHeadingsAndHTMLTags } from "./meta/frontmatter";
 import { getAllHeadingTitles, pathAcceptedString } from "./fast_link_edit/helper";
-import { goToNextLink, getCurrentLinkIndex } from "./fast_link_edit/navigate";
+import { goToNextLink, getCurrentLinkIndex, navigatePaneToNextLink, navigatePaneToPreviousLink } from "./fast_link_edit/navigate";
 import { toggleMetaTag } from "./fast_toggle_tags/meta";
 import { createNotationNote } from "./notation";
 import { ObsidianLink } from "./links";
@@ -10,6 +10,7 @@ import { ManageLinksModal } from "./manage_links/ManageLinksModal";
 import { addHTMLCommands } from "./html/html";
 import { sanitizeFilename } from "./files";
 import { navigateToIndex } from "./navigate_index/navigate_index";
+import { openNavigationPane } from "./fast_link_edit/navigate";
 import * as path from 'path';
 import * as fs from 'fs';
 import { createFootnote } from "./footnotes";
@@ -185,27 +186,13 @@ export async function addFastToggleTagsCommands(plugin: Plugin) {
 
 }
 
-// TODO: factor out the main code in the below
-
 export async function addIndexViewCommands(plugin: Plugin) {
     plugin.addCommand({
         id: 'open-pane-to-navigate-links-in-current-view',
         name: 'Open pane to navigate links in current view',
         hotkeys: [{modifiers: ['Shift', 'Alt'], key: 'Enter'}],
         editorCallback: async (editor: Editor) => {
-            // console.log('hello')
-            const currentFile = plugin.app.workspace.getActiveFile();
-            const fileCache = plugin.app.metadataCache.getFileCache(currentFile);
-            const index = getCurrentLinkIndex(editor.getCursor() , fileCache.links);
-            // console.log(index)
-            const file_name = ObsidianLink.fromText(fileCache.links[index].original).file_name;
-            //const file_name = plugin.app.metadataCache.getFirstLinkpathDest(fileCache.links[index].original, '')
-            const file = plugin.app.metadataCache.getFirstLinkpathDest(file_name, '');
-            await plugin.app.workspace.openLinkText('', file.path, true);
-            const leaf = plugin.app.workspace.getLeaf(false);
-            leaf.navigateLinkIndex = index;
-            leaf.navigateLinks = fileCache.links;
-            new Notice('New link-navigation pane opened');
+            openNavigationPane(plugin, editor);
         }
     });
 
@@ -214,23 +201,7 @@ export async function addIndexViewCommands(plugin: Plugin) {
         name: 'Navigate pane to next link',
         hotkeys: [{modifiers: ['Shift', 'Alt'], key: 'j'}],
         checkCallback: (checking: boolean) => {
-            const leaf = plugin.app.workspace.getLeaf(false);
-            if (leaf.hasOwnProperty('navigateLinkIndex')) {
-                if (!checking) {
-                    if (leaf.navigateLinkIndex < leaf.navigateLinks.length - 1) {
-                        leaf.navigateLinkIndex = leaf.navigateLinkIndex + 1;
-                        const file_name = ObsidianLink.fromText(leaf.navigateLinks[leaf.navigateLinkIndex].original).file_name;
-                        const file = plugin.app.metadataCache.getFirstLinkpathDest(file_name, '');
-                        if (file) { // if the link points to an existing file
-                            plugin.app.workspace.openLinkText('', file.path, false);
-                        } else {
-                            new Notice(`${file_name} does not exist.`)
-                        }
-                    }
-                }
-                return true;
-            }
-            return false;
+            return navigatePaneToNextLink(plugin, checking);
         }
     });
     plugin.addCommand({
@@ -238,23 +209,7 @@ export async function addIndexViewCommands(plugin: Plugin) {
         name: 'Navigate pane to previous link',
         hotkeys: [{modifiers: ['Shift', 'Alt'], key: 'k'}],
         checkCallback: (checking: boolean) => {
-            const leaf = plugin.app.workspace.getLeaf(false);
-            if (leaf.hasOwnProperty('navigateLinkIndex')) {
-                if (!checking) {
-                    if (leaf.navigateLinkIndex > 0) {
-                        leaf.navigateLinkIndex = leaf.navigateLinkIndex - 1;
-                        const file_name = ObsidianLink.fromText(leaf.navigateLinks[leaf.navigateLinkIndex].original).file_name;
-                        const file = plugin.app.metadataCache.getFirstLinkpathDest(file_name, '');
-                        if (file) { // if the link points to an existing file
-                            plugin.app.workspace.openLinkText('', file.path, false);
-                        } else {
-                            new Notice(`${file_name} does not exist.`)
-                        }
-                    }
-                }
-                return true;
-            }
-            return false;
+            return navigatePaneToPreviousLink(plugin, checking);
         }
     });
 }
