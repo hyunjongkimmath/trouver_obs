@@ -1,4 +1,4 @@
-import { EditorPosition, LinkCache, Notice, Plugin, TFile, WorkspaceLeaf} from 'obsidian';
+import { EditorPosition, LinkCache, MarkdownView, Notice, Plugin, TFile, WorkspaceLeaf} from 'obsidian';
 import { getCurrentIndex, getNextThingIndex, goToNextThing, locPairToRange, locToEditorPosition, positionComesBeforeLoc, positionInRange } from 'code/editor/helper';
 
 import { ObsidianLink } from "../links";
@@ -80,6 +80,13 @@ export async function openNavigationPane(plugin: Plugin, editor: Editor) {
     leaf.navigateLinkIndex = index;
 	leaf.baseFile = currentFile;
 	updateLeafNavigateLinks(plugin, leaf);
+	// Focus on the newly opened pane
+    plugin.app.workspace.setActiveLeaf(leaf);
+    
+    // Set focus on the editor
+    if (leaf.view instanceof MarkdownView) {
+        leaf.view.editor.focus();
+    }
     new Notice('New link-navigation pane opened');
 }
 
@@ -122,19 +129,6 @@ export async function updateLeafNavigateLinks(
 }
 
 
-// export async function openNavigationPane(plugin: Plugin, editor: Editor) {
-// 	const currentFile = plugin.app.workspace.getActiveFile();
-// 	const fileCache = plugin.app.metadataCache.getFileCache(currentFile);
-// 	const index = getCurrentLinkIndex(editor.getCursor() , fileCache.links);
-// 	const file_name = ObsidianLink.fromText(fileCache.links[index].original).file_name;
-// 	//const file_name = plugin.app.metadataCache.getFirstLinkpathDest(fileCache.links[index].original, '')
-// 	const file = plugin.app.metadataCache.getFirstLinkpathDest(file_name, '');
-// 	await plugin.app.workspace.openLinkText('', file.path, true);
-// 	const leaf = plugin.app.workspace.getLeaf(false);
-// 	leaf.navigateLinkIndex = index;
-// 	leaf.navigateLinks = fileCache.links;
-// 	new Notice('New link-navigation pane opened');
-// }
 
 
 /**
@@ -150,7 +144,6 @@ export async function openNavigationLink(
 	const file_name = ObsidianLink.fromText(leaf.navigateLinks[navigateLinkIndex].original).file_name;
 	const file = plugin.app.metadataCache.getFirstLinkpathDest(file_name, '');
 	if (file) {
-		console.log('file exists?')
 		plugin.app.workspace.openLinkText('', file.path, false);
 		return true;
 	}
@@ -165,7 +158,6 @@ export async function navigatePaneToNextLink(plugin: Plugin, checking: boolean):
 				leaf.navigateLinkIndex = leaf.navigateLinkIndex + 1;
 				const openedFirstTime = await openNavigationLink(plugin, leaf, leaf.navigateLinkIndex);
 				if (!openedFirstTime) {
-					console.log('hello')
 					updateLeafNavigateLinks(plugin, leaf);
 					const openedSecondTime = openNavigationLink(plugin, leaf, leaf.navigateLinkIndex);
 					if (!openedSecondTime) {
@@ -194,20 +186,12 @@ export async function navigatePaneToPreviousLink(plugin: Plugin, checking: boole
 				leaf.navigateLinkIndex = leaf.navigateLinkIndex - 1;
 				const openedFirstTime = await openNavigationLink(plugin, leaf, leaf.navigateLinkIndex);
 				if (!openedFirstTime) {
-					console.log('hello')
 					updateLeafNavigateLinks(plugin, leaf);
 					const openedSecondTime = openNavigationLink(plugin, leaf, leaf.navigateLinkIndex);
 					if (!openedSecondTime) {
 						new Notice(`${file_name} does not exist.`)
 					}
 				}
-				// const file_name = ObsidianLink.fromText(leaf.navigateLinks[leaf.navigateLinkIndex].original).file_name;
-				// const file = plugin.app.metadataCache.getFirstLinkpathDest(file_name, '');
-				// if (file) { // if the link points to an existing file
-				// 	plugin.app.workspace.openLinkText('', file.path, false);
-				// } else {
-				// 	new Notice(`${file_name} does not exist.`)
-				// }
 			}
 		}
 		return true;
