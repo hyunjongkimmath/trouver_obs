@@ -138,16 +138,26 @@ export async function addFastLinkEditCommands(plugin: TrouverObs) {
 
 export async function addFastToggleTagsCommands(plugin: Plugin) {
 
-    const tags = ['_meta/definition', '_meta/notation', '_meta/concept', '_meta/proof',
-                    '_meta/narrative', '_meta/exercise', '_meta/remark', '_meta/example',
-                    '_meta/context', 'def_and_notat_identified', 'def_and_notat_names_added', 'notation_summary', '_meta/notation_note_named'];
-    const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '+', ']']
-    const TODOTags = ['_meta/TODO/delete', '_meta/TODO/split', '_meta/TODO/merge',
-                        '_meta/TODO/change_title', ];
+    const tags_and_keys = [
+        ['_meta/definition', '1'],
+        ['_meta/notation', '2'],
+        ['_meta/concept', '3'],
+        ['_meta/proof', '4'],
+        ['_meta/narrative', '5'],
+        ['_meta/exercise', '6'],
+        ['_meta/remark', '7'],
+        ['_meta/example', '8'],
+        ['_meta/context', '9'],
+        ['def_and_notat_identified', '0'],
+        ['def_and_notat_names_added', '-'],
+        ['notation_summary', '+'],
+        ['_meta/notation_note_named', ']'],
+        ['notation_notes_linked', '['],
+    ];
 
-    for (let i = 0; i < tags.length; i++) {
-        let tag = tags[i];
-        let key = keys[i];
+    for (let i = 0; i < tags_and_keys.length; i++) {
+        let tag = tags_and_keys[i][0];
+        let key = tags_and_keys[i][1];
         plugin.addCommand({
             id: `toggle-${tag}-tag`,
             name: `Toggle ${tag} tag`,
@@ -164,6 +174,9 @@ export async function addFastToggleTagsCommands(plugin: Plugin) {
             }
         });
     }
+
+    const TODOTags = ['_meta/TODO/delete', '_meta/TODO/split', '_meta/TODO/merge',
+                        '_meta/TODO/change_title', ];
 
     for (let i = 0; i < TODOTags.length; i++) {
         let tag = TODOTags[i];
