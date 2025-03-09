@@ -14,7 +14,7 @@ import { openNavigationPane } from "./fast_link_edit/navigate";
 import * as path from 'path';
 import * as fs from 'fs';
 import { createFootnote } from "./footnotes";
-import { createNotationNotes, linkNotats, nameDefsAndNotats } from "./run_python_script";
+import { createNotationNotes, getProcessedContentOfNote, linkNotats, nameDefsAndNotats } from "./run_python_script";
 import { getReferenceName } from "./references";
 import TrouverObs from "main";
 
@@ -460,4 +460,48 @@ export async function addPythonCommands(plugin: TrouverObs) {
             }
         }
     })
+
+    // plugin.addCommand({
+    //     id: 'get-processed-content-of-note',
+    //     name: 'Get the Processed Content of the current note',
+    //     // hotkeys: [{modifiers: ['Shift', 'Alt'], key: 't'}],
+    //     editorCallback: async (editor: Editor) => {
+    //         try {
+    //             new Notice(`Obtaining processed content of current note`);
+    //             const activeFile = plugin.app.workspace.getActiveFile();
+    //             const fileName = activeFile.name;
+    //             // Ensure createNotationNotes returns a promise that resolves when all operations are complete
+    //             await getProcessedContentOfNote(plugin);
+    //             new Notice(`Processed note content of  ${fileName} copied to clipboard.`);
+    //         } catch (error) {
+    //             console.error('Error in get-processed-content-of-note command:', error);
+    //             new Notice('An error occurred while obtaining processed note content');
+    //         }
+    //     }
+    // })
+
+    plugin.addCommand({
+    id: 'get-processed-content-of-note',
+    name: 'Get the Processed Content of the current note',
+    // hotkeys: [{modifiers: ['Shift', 'Alt'], key: 't'}],
+    callback: async () => {
+        try {
+            new Notice(`Obtaining processed content of current note`);
+            const activeFile = plugin.app.workspace.getActiveFile();
+            if (!activeFile) {
+                new Notice('No active file found');
+                return;
+            }
+            const fileName = activeFile.name;
+            // Ensure createNotationNotes returns a promise that resolves when all operations are complete
+            await getProcessedContentOfNote(plugin);
+            new Notice(`Processed note content of ${fileName} copied to clipboard.`);
+        } catch (error) {
+            console.error('Error in get-processed-content-of-note command:', error);
+            new Notice('An error occurred while obtaining processed note content');
+        }
+    }
+    });
+
+
 }

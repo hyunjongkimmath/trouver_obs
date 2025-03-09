@@ -46,6 +46,7 @@ export async function passToScript(
     const result = await runPythonScript(plugin, scriptPath, args);
     console.log('Logging from Python script:');
     console.log(result);
+    return result;
   } catch (error) {
     console.error('Error running Python script:', error);
   }
@@ -127,5 +128,29 @@ export async function linkNotats(
         throw error; // Re-throw the error to be caught by the calling function
     }
     // passToScript(plugin, 'create_notation_notes.py', [vaultPath, filePath, referenceName])
+
+}
+
+export async function getProcessedContentOfNote(
+    plugin: TrouverObs,
+){
+
+    const adapter = plugin.app.vault.adapter;
+    const vaultPath = adapter.getBasePath(); // Get the root directory of the vault
+    const activeFile = plugin.app.workspace.getActiveFile();
+    const filePath = activeFile.path;
+    const referenceName =  await getReferenceName(plugin)
+
+    try {
+        // Await the passToScript function
+        const result = await passToScript(plugin, 'get_processed_note_content.py', [vaultPath, filePath, referenceName]);
+        await navigator.clipboard.writeText(`${result}`);
+
+    } catch (error) {
+        console.error('Error in getProcessedContentOfNote:', error);
+        throw error; // Re-throw the error to be caught by the calling function
+    }
+    // passToScript(plugin, 'create_notation_notes.py', [vaultPath, filePath, referenceName])
+
 
 }
